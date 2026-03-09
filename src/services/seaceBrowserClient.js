@@ -539,37 +539,28 @@ class SeaceBrowserClient {
 
       try {
         page.setDefaultTimeout(env.seaceNavigationTimeoutMs);
-        await page.goto(env.seacePublicSearchUrl, {
-          waitUntil: 'domcontentloaded',
-          timeout: env.seaceNavigationTimeoutMs,
-        });
-        await page.waitForLoadState('networkidle', { timeout: Math.min(env.seaceNavigationTimeoutMs, 10000) }).catch(() => {});
-        await page.waitForTimeout(env.seaceSettleDelayMs);
-
-        const tabLink = page.locator('a[href="#tbBuscador:tab1"]').first();
-        const objectSelect = page.locator('[id="tbBuscador:idFormBuscarProceso:j_idt192_input"]').first();
-        const yearSelect = page.locator('[id="tbBuscador:idFormBuscarProceso:anioConvocatoria_input"]').first();
-        const searchButton = page.locator('[id="tbBuscador:idFormBuscarProceso:btnBuscarSelToken"]').first();
-        const exportButton = page.locator('[id="tbBuscador:idFormBuscarProceso:btnExportar"]').first();
-
-        if (!(await objectSelect.count()) || !(await yearSelect.count()) || !(await searchButton.count()) || !(await exportButton.count())) {
-          throw new Error('No se encontraron los controles necesarios del buscador publico SEACE');
-        }
-
-        if (await tabLink.count()) {
-          await tabLink.click();
-          await page.waitForTimeout(1000);
-        }
-
-        await objectSelect.selectOption(String(objectValue), { force: true });
-        await yearSelect.selectOption(String(year), { force: true });
-        await page.waitForTimeout(750);
-        await searchButton.click({ force: true });
-
-        await page.locator('[id="tbBuscador:idFormBuscarProceso:dtProcesos_data"] tr').first()
-          .waitFor({ state: 'attached', timeout: env.seaceResultsTimeoutMs })
-          .catch(() => {});
+        await this.runProcedureSearch(page, { year, objectValue });
         await page.waitForTimeout(env.seaceExportDelayMs);
+
+        let exportButton = page.locator('[id="tbBuscador:idFormBuscarProceso:btnExportar"]').first();
+        if (!(await exportButton.count())) {
+          const exportButtonId = await page.evaluate(() => {
+            function normalize(value) {
+              return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+            }
+
+            const candidates = Array.from(document.querySelectorAll('button[id], input[id], a[id]'));
+            return candidates.find((node) => normalize(node.textContent || node.value) === 'exportar a excel')?.id || null;
+          });
+
+          if (exportButtonId) {
+            exportButton = page.locator(`[id="${exportButtonId}"]`).first();
+          }
+        }
+
+        if (!(await exportButton.count())) {
+          throw new Error('No se encontro el boton Exportar a Excel del buscador publico SEACE');
+        }
 
         const downloadPromise = page.waitForEvent('download', { timeout: env.seaceResultsTimeoutMs });
         await exportButton.click({ force: true });
