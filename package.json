@@ -1,0 +1,32 @@
+{
+  "name": "seace-core",
+  "version": "1.0.0",
+  "description": "Microservicio self-hosted para ingesta SEACE, tracking de Buena Pro y extraccion de contactos desde PDF.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "dev": "node --watch src/main.js",
+    "smoke": "node scripts/smoke-check.js",
+    "test": "node scripts/test-runner.js",
+    "validate:ocr": "node scripts/validate-ocr-example.js"
+  },
+  "keywords": [
+    "seace",
+    "scraper",
+    "n8n",
+    "coolify",
+    "vps"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/multipart": "^9.4.0",
+    "fastify": "^5.8.2",
+    "node-cron": "^3.0.3",
+    "pdf-parse": "^1.1.1",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "playwright": "^1.52.0",
+    "xlsx": "^0.18.5"
+  }
+}

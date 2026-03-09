@@ -1,0 +1,82 @@
+version: '3.9'
+
+services:
+  seace-core:
+    image: ${SEACE_CORE_IMAGE}
+    environment:
+      PORT: ${PORT:-3000}
+      HOST: ${HOST:-0.0.0.0}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-30000}
+      DATABASE_PATH: ${DATABASE_PATH:-./data/seace.sqlite}
+      INBOX_DIR: ${INBOX_DIR:-./data/inbox}
+      ARCHIVE_DIR: ${ARCHIVE_DIR:-./data/archive}
+      DOWNLOAD_DIR: ${DOWNLOAD_DIR:-./data/downloads}
+      TMP_DIR: ${TMP_DIR:-./data/tmp}
+      SESSION_DIR: ${SESSION_DIR:-./data/sessions/seace}
+      API_TOKEN: ${API_TOKEN}
+      AUTH_COOKIE_NAME: ${AUTH_COOKIE_NAME:-seace_core_auth}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      MIN_REFERENCE_VALUE: ${MIN_REFERENCE_VALUE:-5000000}
+      REVIEW_INTERVAL_HOURS: ${REVIEW_INTERVAL_HOURS:-24}
+      INGEST_CRON: ${INGEST_CRON:-0 * * * *}
+      REVIEW_CRON: ${REVIEW_CRON:-15 */4 * * *}
+      ENABLE_SCHEDULER: ${ENABLE_SCHEDULER:-true}
+      SEACE_BASE_URL: ${SEACE_BASE_URL:-https://prod2.seace.gob.pe/}
+      SEACE_PUBLIC_SEARCH_URL: ${SEACE_PUBLIC_SEARCH_URL:-https://prod2.seace.gob.pe/seacebus-uiwd-pub/buscadorPublico/buscadorPublico.xhtml}
+      SEACE_SEARCH_URL_TEMPLATE: ${SEACE_SEARCH_URL_TEMPLATE:-}
+      AUTO_FETCH_PUBLIC_EXCEL: ${AUTO_FETCH_PUBLIC_EXCEL:-true}
+      PUBLIC_SEARCH_OBJECT_VALUE: ${PUBLIC_SEARCH_OBJECT_VALUE:-64}
+      PUBLIC_SEARCH_YEAR: ${PUBLIC_SEARCH_YEAR:-2026}
+      SEACE_NAVIGATION_TIMEOUT_MS: ${SEACE_NAVIGATION_TIMEOUT_MS:-60000}
+      SEACE_SETTLE_DELAY_MS: ${SEACE_SETTLE_DELAY_MS:-2500}
+      SEACE_RESULTS_TIMEOUT_MS: ${SEACE_RESULTS_TIMEOUT_MS:-60000}
+      SEACE_EXPORT_DELAY_MS: ${SEACE_EXPORT_DELAY_MS:-15000}
+      OCR_ENABLED: ${OCR_ENABLED:-true}
+      OCR_LANG: ${OCR_LANG:-spa+eng}
+      OCR_TESSERACT_BIN: ${OCR_TESSERACT_BIN:-}
+      OCR_PDFTOPPM_BIN: ${OCR_PDFTOPPM_BIN:-}
+      OCR_DPI: ${OCR_DPI:-200}
+      OCR_MAX_PAGES: ${OCR_MAX_PAGES:-40}
+      OCR_TIMEOUT_MS: ${OCR_TIMEOUT_MS:-600000}
+      OCR_MIN_TEXT_LENGTH: ${OCR_MIN_TEXT_LENGTH:-1200}
+      OCR_CONFIDENCE_THRESHOLD: ${OCR_CONFIDENCE_THRESHOLD:-0.55}
+      PDF_DOWNLOAD_TIMEOUT_MS: ${PDF_DOWNLOAD_TIMEOUT_MS:-45000}
+      PDF_DOWNLOAD_RETRIES: ${PDF_DOWNLOAD_RETRIES:-2}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      N8N_TIMEOUT_MS: ${N8N_TIMEOUT_MS:-20000}
+      N8N_MAX_RETRIES: ${N8N_MAX_RETRIES:-2}
+      PLAYWRIGHT_HEADLESS: ${PLAYWRIGHT_HEADLESS:-true}
+      MAX_REVIEW_BATCH: ${MAX_REVIEW_BATCH:-25}
+    ports:
+      - target: 3000
+        published: ${APP_PORT:-3080}
+        protocol: tcp
+        mode: ingress
+    volumes:
+      - seace_core_data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+
+volumes:
+  seace_core_data:
+    name: seace_core_data

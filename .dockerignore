@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.env
+data/*.sqlite
+data/*.sqlite-*
+data/archive
+data/downloads
+data/inbox
+data/tmp
+data/sessions

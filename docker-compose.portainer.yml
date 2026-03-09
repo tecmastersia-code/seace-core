@@ -1,0 +1,23 @@
+services:
+  seace-core-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: seace-core:latest
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3080}:3000"
+    env_file:
+      - .env.portainer
+    volumes:
+      - seace_core_data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  seace_core_data:
+    name: seace_core_data
