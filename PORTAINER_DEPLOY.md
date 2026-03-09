@@ -14,6 +14,7 @@ Este stack esta preparado para desplegarse sin tocar otros proyectos existentes 
 - Usa un puerto host libre, por ejemplo `3080`
 - El volumen persistente queda separado como `seace_core_data`
 - No reutiliza contenedores, redes ni volumenes de otros proyectos
+- El servicio corre como `root` en el stack para evitar errores `EACCES` sobre el volumen persistente `/app/data`
 - En tu VPS actual NO uses el puerto `3000`, porque ya esta ocupado por otro servicio
 
 ## Pasos

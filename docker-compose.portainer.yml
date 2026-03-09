@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: seace-core:latest
+    user: "0:0"
     restart: unless-stopped
     ports:
       - "${APP_PORT:-3080}:3000"

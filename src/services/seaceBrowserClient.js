@@ -153,7 +153,66 @@ class SeaceBrowserClient {
     const searchButton = page.locator('[id="tbBuscador:idFormBuscarProceso:btnBuscarSelToken"]').first();
 
     if (!objectSelect || !yearSelect || !(await searchButton.count())) {
-      throw new Error('No se encontraron controles de busqueda de procedimientos SEACE');
+      const fallback = await page.evaluate(() => {
+        function normalize(value) {
+          return String(value || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function sameRowSelect(labelText) {
+          const labels = Array.from(document.querySelectorAll('td, label, span'));
+          const labelNode = labels.find((node) => normalize(node.textContent).startsWith(labelText));
+          if (!labelNode) {
+            return null;
+          }
+
+          const row = labelNode.closest('tr');
+          const inRow = row ? row.querySelector('select[id], input[type="text"][id]') : null;
+          if (inRow?.id) {
+            return inRow.id;
+          }
+
+          const sibling = labelNode.nextElementSibling?.querySelector('select[id], input[type="text"][id]');
+          return sibling?.id || null;
+        }
+
+        const objectId = sameRowSelect('Objeto de Contratacion')
+          || sameRowSelect('Objeto de Contratación')
+          || Array.from(document.querySelectorAll('select[id]')).find((node) => /idFormBuscarProceso:.*_input$/.test(node.id) && /obra/i.test(node.innerText || ''))?.id
+          || null;
+
+        const yearId = document.getElementById('tbBuscador:idFormBuscarProceso:anioConvocatoria_input')?.id
+          || sameRowSelect('Ano de la Convocatoria')
+          || sameRowSelect('Año de la Convocatoria')
+          || Array.from(document.querySelectorAll('select[id]')).find((node) => /idFormBuscarProceso:.*_input$/.test(node.id) && /2026/.test(node.innerText || ''))?.id
+          || null;
+
+        const buttonId = document.getElementById('tbBuscador:idFormBuscarProceso:btnBuscarSelToken')?.id
+          || Array.from(document.querySelectorAll('button[id], input[id], a[id]')).find((node) => normalize(node.textContent || node.value) === 'Buscar')?.id
+          || null;
+
+        return { objectId, yearId, buttonId };
+      });
+
+      if (fallback.objectId) {
+        objectSelect = page.locator(`[id="${fallback.objectId}"]`).first();
+      }
+      if (fallback.yearId) {
+        yearSelect = page.locator(`[id="${fallback.yearId}"]`).first();
+      }
+
+      const resolvedButtonId = fallback.buttonId || null;
+      const fallbackButton = resolvedButtonId ? page.locator(`[id="${resolvedButtonId}"]`).first() : null;
+
+      if (!objectSelect || !yearSelect || !fallbackButton) {
+        throw new Error('No se encontraron controles de busqueda de procedimientos SEACE');
+      }
+
+      await objectSelect.selectOption(String(objectValue), { force: true });
+      await yearSelect.selectOption(String(year), { force: true });
+      await page.waitForTimeout(750);
+      await fallbackButton.click({ force: true });
+      await this.waitForProcedureResults(page);
+      return;
     }
 
     await objectSelect.selectOption(String(objectValue), { force: true });

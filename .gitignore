@@ -1,6 +1,8 @@
 node_modules/
 .env
 .env.portainer
+LOCAL_PORTAINER_DEPLOY.md
+tecmatersia-portainer-web-editor.yml
 data/*.sqlite
 data/*.sqlite-*
 data/archive/
