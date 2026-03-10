@@ -153,13 +153,17 @@ class SeaceBrowserClient {
     const searchButton = page.locator('[id="tbBuscador:idFormBuscarProceso:btnBuscarSelToken"]').first();
 
     if (!objectSelect || !yearSelect || !(await searchButton.count())) {
-      const fallback = await page.evaluate(() => {
+      const fallback = await page.evaluate((searchYear) => {
         function normalize(value) {
           return String(value || '').replace(/\s+/g, ' ').trim();
         }
 
+        function normalizeLower(value) {
+          return normalize(value).toLowerCase();
+        }
+
         function sameRowSelect(labelText) {
-          const labels = Array.from(document.querySelectorAll('td, label, span'));
+          const labels = Array.from(document.querySelectorAll('td, label, span, div, strong'));
           const labelNode = labels.find((node) => normalize(node.textContent).startsWith(labelText));
           if (!labelNode) {
             return null;
@@ -175,23 +179,42 @@ class SeaceBrowserClient {
           return sibling?.id || null;
         }
 
+        const forms = Array.from(document.querySelectorAll('form'));
+        const searchForm = forms.find((form) => /idFormBuscarProceso$/i.test(form.id))
+          || forms.find((form) => {
+            const text = normalizeLower(form.textContent);
+            return text.includes('objeto de contratacion') || text.includes('objeto de contratación');
+          })
+          || document;
+
+        const formSelects = Array.from(searchForm.querySelectorAll('select[id]'));
+
+        const selectCandidates = formSelects.map((node) => ({
+          id: node.id,
+          text: normalizeLower(node.textContent),
+          options: Array.from(node.options || []).map((option) => normalizeLower(option.textContent)),
+        }));
+
         const objectId = sameRowSelect('Objeto de Contratacion')
           || sameRowSelect('Objeto de Contratación')
+          || selectCandidates.find((node) => node.options.some((option) => option === 'obra' || option.includes('obra')))?.id
           || Array.from(document.querySelectorAll('select[id]')).find((node) => /idFormBuscarProceso:.*_input$/.test(node.id) && /obra/i.test(node.innerText || ''))?.id
           || null;
 
         const yearId = document.getElementById('tbBuscador:idFormBuscarProceso:anioConvocatoria_input')?.id
           || sameRowSelect('Ano de la Convocatoria')
           || sameRowSelect('Año de la Convocatoria')
+          || selectCandidates.find((node) => node.options.some((option) => option === String(searchYear)))?.id
           || Array.from(document.querySelectorAll('select[id]')).find((node) => /idFormBuscarProceso:.*_input$/.test(node.id) && /2026/.test(node.innerText || ''))?.id
           || null;
 
         const buttonId = document.getElementById('tbBuscador:idFormBuscarProceso:btnBuscarSelToken')?.id
-          || Array.from(document.querySelectorAll('button[id], input[id], a[id]')).find((node) => normalize(node.textContent || node.value) === 'Buscar')?.id
+          || Array.from(searchForm.querySelectorAll('button[id], input[id], a[id]')).find((node) => normalizeLower(node.textContent || node.value) === 'buscar')?.id
+          || Array.from(document.querySelectorAll('button[id], input[id], a[id]')).find((node) => normalizeLower(node.textContent || node.value) === 'buscar')?.id
           || null;
 
         return { objectId, yearId, buttonId };
-      });
+      }, year);
 
       if (fallback.objectId) {
         objectSelect = page.locator(`[id="${fallback.objectId}"]`).first();
