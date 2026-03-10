@@ -8,7 +8,8 @@
     "dev": "node --watch src/main.js",
     "smoke": "node scripts/smoke-check.js",
     "test": "node scripts/test-runner.js",
-    "validate:ocr": "node scripts/validate-ocr-example.js"
+    "validate:ocr": "node scripts/validate-ocr-example.js",
+    "debug:seace": "node scripts/debug-seace-public-search.js"
   },
   "keywords": [
     "seace",
